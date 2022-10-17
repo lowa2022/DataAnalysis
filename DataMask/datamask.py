@@ -1,3 +1,4 @@
+from django import conf
 import unicodecsv as cs
 from faker import Faker
 from datetime import date
@@ -25,9 +26,7 @@ faker = Faker(locales)  # Diversified
 # faker = Faker(config['General']['Locale']) #not working
 def anonymize(sourcefile):
     # Anonymizes the given original data to anonymized form
-    with open(
-            sourcefile, 'rb'
-    ) as f:  # automatically close reldata.csv when it’s not needed anymore
+    with open(sourcefile, 'rb') as f:  # automatically close reldata.csv when it’s not needed anymore
         with open("fakedata.csv", 'wb') as o:
             # Use the DictReader to easily extract fields
             reader = cs.DictReader(f)
@@ -39,182 +38,249 @@ def anonymize(sourcefile):
                 pass
 
             for row in reader:
-                # if gender in list of column names
-                if config['Mappings']['Gender'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    row[config['Mappings']['Gender']] = row[
-                        config['Mappings']['Gender']].strip(' ')
-                    row[config['Mappings']['Gender']] = row[
-                        config['Mappings']['Gender']].capitalize()
+                
 
-                    # if First in column names
-                if config['Mappings']['First'] not in list_of_column_names[0]:
-                    pass
+                if row[config['Mappings']['SSN']] in preSSN:  # if ssn is seen before
+                    row[config['Mappings']['SSN']] = ssnDict[row[config['Mappings']['SSN']]]  # fke ssn is the value of the current ssn as key
+                    row[config['Mappings']['First']] = fnameDict[row[config['Mappings']['SSN']]]  # first name of current row is the same as the firstname mapped to the current ssn
+                    row[config['Mappings']['Last']] = lnameDict[row[config['Mappings']['SSN']]]
+                    row[config['Mappings']['Street']] = fake.street_address()
+                    row[config['Mappings']['DOB']] = dateDict[row[config['Mappings']['SSN']]]
+                    row[config['Mappings']['Gender']] = genderDict[row[config['Mappings']['SSN']]]
+                    row[config['Mappings']['Email']] = fake.email()
+                    row[config['Mappings']['Phone']] = fake.phone_number()
+                    row[config['Mappings']['Drivers license']] = driversLicenseDict[row[config['Mappings']['SSN']]]
+                    row[config['Mappings']['Policy Number']] = policy_generator()
+                    row[config['Mappings']['Claim Number']] = f"{random.randint(0,9)}{random.choice(string.ascii_uppercase)}{random.choice(string.ascii_uppercase)}{random.randint(10000000,99999999)}"
+                    row[config['Mappings']['VIN']] = vin_generator()
+                    row[config['Mappings']['TIN']] = TIN()
+                    row[config['Mappings']['User ID']] = fake.user_name()
+                    row[config['Mappings']['License Plate']] = fake.license_plate()
+
                 else:
-                    if row[
-                        config['Mappings']
-                            ['Gender']] == 'Male' or 'M':  # create male names for male
-                        row[config['Mappings']
-                            ['First']] = faker.first_name_male()
-                    elif row[config['Mappings']['Gender']] == 'Female' or 'F':
-                        row[config['Mappings']
-                            ['First']] = faker.first_name_female(
-                        )  # female names for females
+                    preSSN.append(row[config['Mappings']['SSN']])  # add original ssn to the list
+
+                    # if gender in list of column names
+                    if config['Mappings']['Gender'] not in list_of_column_names[0]:
+                        pass
                     else:
-                        row[config['Mappings']['First']] = faker.first_name()
+                        row[config['Mappings']['Gender']] = row[config['Mappings']['Gender']].strip(' ')
+                        row[config['Mappings']['Gender']] = row[config['Mappings']['Gender']].capitalize()
 
-                # check if last nmae in dataset
-                if config['Mappings']['Last'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    row[config['Mappings']['Last']] = faker.last_name()
-
-                # check if street in data set
-                if config['Mappings']['Street'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if not row[config['Mappings']
-                               ['Street']]:  # for empty cells
-                        row[config['Mappings']['Street']] = None
+                        # if First in column names
+                    if config['Mappings']['First'] not in list_of_column_names[0]:
+                        pass
                     else:
-                        row[config['Mappings']
-                            ['Street']] = fake.street_address()
-
-                # dates according to users locale
-                if config['Mappings']['DOB'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if not row[config['Mappings']['DOB']]:
-                        row[config['Mappings']['DOB']] = None
-                    else:
-                        date_str = row[config['Mappings']
-                                       ['DOB']]  # get the person's dob
-                        date_obj = datetime.datetime.strptime(
-                            date_str, '%m/%d/%Y')  # strip the time in format
-                        birthYear = date_obj.year  # get the birth year
-                        row[config['Mappings']['DOB']] = GetValidDob(
-                            birthYear
-                        )  # using get Birth year function, generate new valid DOB
-
-                # for fake person's dob
-                date_str = row[config['Mappings']['DOB']]
-                # getting the fake persons dob to generate new data
-                new_date_obj = datetime.datetime.strptime(
-                    date_str, '%m/%d/%Y')  # strip in format
-                new_birthYear = new_date_obj.year  # get year
-                new_birthMonth = new_date_obj.month  # get month
-                new_birthDay = new_date_obj.day  # get day
-
-                # ssn
-
-                if config['Mappings']['SSN'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if '-' in row[config['Mappings']['SSN']]:
-                        row[config['Mappings']['SSN']] = fake.ssn(
-                        )  # only dases if the original had dashes, otherwise empty spaces
-                    else:
-                        row[config['Mappings']['SSN']] = fake.ssn().translate(
-                            {ord("-"): None})  # dont use dashes
-
-                # email
-                emailfunctions = [
-                    firstnameemail(row[config['Mappings']['First']],
-                                   row[config['Mappings']['Last']]),
-                    lastnameemail(row[config['Mappings']['First']],
-                                  row[config['Mappings']['Last']]),
-                    fLastNameemail(row[config['Mappings']['First']],
-                                   row[config['Mappings']['Last']])
-                ]  # use from these fucntions
-
-                if config['Mappings']['Email'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if not row[config['Mappings']['Email']]:  # for empty cells
-                        row[config['Mappings']['Email']] = None
-                    else:
-                        row[config['Mappings']['Email']] = random.choice(
-                            emailfunctions)
-
-                if config['Mappings']['Phone'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if not row[config['Mappings']['Phone']]:  # for empty cells
-                        row[config['Mappings']['Phone']] = None
-                    else:
-                        row[config['Mappings']['Phone']] = fake.phone_number()
-
-                if config['Mappings'][
-                        'Drivers license'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if not row[config['Mappings']['Drivers license']]:
-                        row[config['Mappings']['Drivers license']] = None
-                    else:
-                        # declare to use out of the function for fake
-                        global firstname, lastname, year, day, month
-                        firstname = row[config['Mappings']['First']]
-                        lastname = row[config['Mappings']['Last']]
-                        if new_birthMonth < 10:
-                            # adding 0 in front of one digit month or day
-                            month = f"0{str(new_birthMonth)}"
+                        if row[config['Mappings']['Gender']] == 'Male' or 'M':  # create male names for male
+                            row[config['Mappings']['First']] = faker.first_name_male()
+                        elif row[config['Mappings']['Gender']] == 'Female' or 'F':
+                            row[config['Mappings']['First']] = faker.first_name_female()  # female names for females
                         else:
-                            month = str(new_birthMonth)
-                        year = str(new_birthYear)
-                        if new_birthDay < 10:
-                            day = f"0{str(new_birthDay)}"
+                            row[config['Mappings']['First']] = faker.first_name()
+
+                    # check if last name in dataset
+                    if config['Mappings']['Last'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        row[config['Mappings']['Last']] = faker.last_name()
+
+                    # check if street in data set
+                    if config['Mappings']['Street'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if not row[config['Mappings']['Street']] and config['General']['PreserveNulls'] == 'Yes':  # for empty cells
+                            row[config['Mappings']['Street']] = None
                         else:
-                            day = str(new_birthDay)
+                            row[config['Mappings']['Street']] = fake.street_address()
 
-                        state = row[config['Mappings'][
-                            'State']]  # assign state for drivers license
-
-                        row[config['Mappings']
-                            ['Drivers license']] = random.choice(
-                                license_rules[state])(month, firstname,
-                                                      lastname, year,
-                                                      day)  # apply function
-
-                # LICENSE PLATE
-                if config['Mappings'][
-                        'License Plate'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if not row[config['Mappings']['License Plate']]:
-                        row[config['Mappings']['License Plate']] = None
+                    # dates according to users locale
+                    if config['Mappings']['DOB'] not in list_of_column_names[0]:
+                        pass
                     else:
-                        row[config['Mappings']
-                            ['License Plate']] = fake.license_plate()
+                        if not row[config['Mappings']['DOB']] and config['General']['PreserveNulls'] == 'Yes':
+                            row[config['Mappings']['DOB']] = None
+                        else:
+                            date_str = row[config['Mappings']['DOB']]  # get the person's dob
+                            date_obj = datetime.datetime.strptime(date_str,'%m/%d/%Y')  # strip the time in format
+                            birthYear = date_obj.year  # get the birth year
+                            row[config['Mappings']['DOB']] = GetValidDob(birthYear)  # using get Birth year function, generate new valid DOB
 
-                # CLAIM NUMBER
-                if config['Mappings'][
-                        'Claim number'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if not row[config['Mappings']['Claim number']]:
-                        row[config['Mappings']['Claim number']] = None
-                    else:
-                        row[config['Mappings'][
-                            'Claim number']] = f"{random.randint(0,9)}{random.choice(string.ascii_uppercase)}{random.choice(string.ascii_uppercase)}{random.randint(10000000,99999999)}"
+                    # for fake person's dob
+                    date_str = row[config['Mappings']['DOB']]
+                    # getting the fake persons dob to generate new data
+                    new_date_obj = datetime.datetime.strptime(date_str, '%m/%d/%Y')  # strip in format
+                    new_birthYear = new_date_obj.year  # get year
+                    new_birthMonth = new_date_obj.month  # get month
+                    new_birthDay = new_date_obj.day  # get day
 
-                # VIN
-                if config['Mappings']['VIN'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if not row[config['Mappings']['VIN']]:
-                        row[config['Mappings']['VIN']] = None
-                    else:
-                        row[config['Mappings']['VIN']] = vin_generator(11)
+                    # ssn
 
-                # TIN
-                if config['Mappings']['TIN'] not in list_of_column_names[0]:
-                    pass
-                else:
-                    if not row[config['Mappings']['TIN']]:
-                        row[config['Mappings']['TIN']] = None
+                    if config['Mappings']['SSN'] not in list_of_column_names[0]:
+                        pass
                     else:
-                        row[config['Mappings']['TIN']] = TIN()
+                        if not row[config['Mappings']['SSN']] and config['General']['PreserveNulls'] == 'Yes':
+                            row[config['Mappings']['SSN']] = None
+                        else:
+                            if '-' in row[config['Mappings']['SSN']]:
+                                row[config['Mappings']['SSN']] = fake.ssn()  # only dases if the original had dashes, otherwise empty spaces
+                            else:
+                                row[config['Mappings']['SSN']] = fake.ssn().translate({ord("-"): None})  # dont use dashes
+
+                    # email
+                    if not row[config['Mappings']['Email']]:
+                        pass
+                    else:
+                        preEmail = row[config['Mappings']['email']]  # get original email
+                        emailDomain = preEmail[preEmail.index('@') +1:]  # strip the domain for preservation
+                        
+                    emailfunctions = [
+                        firstnameemail(row[config['Mappings']['First']],
+                                       row[config['Mappings']['Last']]),
+                        lastnameemail(row[config['Mappings']['First']],
+                                      row[config['Mappings']['Last']]),
+                        fLastNameemail(row[config['Mappings']['First']],
+                                       row[config['Mappings']['Last']])
+                    ]  # use from these fucntions
+
+                    emailFunctionsDomain = [
+                        firstNameEmailDomain(row[config['Mappings']['First']],
+                                             row[config['Mappings']['Last']],
+                                             emailDomain),
+                        lastNameEmailDomain(row[config['Mappings']['First']],
+                                            row[config['Mappings']['Last']],
+                                            emailDomain),
+                        fLastNameEmailDomain(row[config['Mappings']['First']],
+                                             row[config['Mappings']['Last']],
+                                             emailDomain)
+                    ]  # list of functions for generating emails with the same domain
+
+                    if config['Mappings']['Email'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if config['General']['PreserveEmailDomain'] == 'Yes':  # incase the domainpreservation is on
+                            if not row[config['Mappings']['Email']] and config['General']['PreserveNulls'] == 'Yes':  # for empty cells
+                                row[config['Mappings']['Email']] = None
+                            else:
+                                row[config['Mappings']['Email']] = random.choice(emailFunctionsDomain)  # choose from the functions
+                        else:
+                            if not row[config['Mappings']['Email']] and config['General']['PreserveNulls'] == 'Yes':  # for empty cells
+                                row[config['Mappings']['Email']] = None
+                            else:
+                                row[config['Mappings']['Email']] = random.choice(emailfunctions)
+
+                    if config['Mappings']['Phone'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if not row[config['Mappings']['Phone']] and config['General']['PreserveNulls'] == 'Yes':  # for empty cells
+                            row[config['Mappings']['Phone']] = None
+                        else:
+                            row[config['Mappings']['Phone']] = fake.phone_number()
+
+                    if config['Mappings']['Drivers license'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if not row[config['Mappings']['Drivers license']] and config['General']['PreserveNulls'] == 'Yes':
+                            row[config['Mappings']['Drivers license']] = None
+                        else:
+                            # declare to use out of the function for fake drivers license
+                            # we need these variables to generate license for the fake value
+                            global firstname, lastname, year, day, month
+                            firstname = row[config['Mappings']['First']]  # updated fake names and variables
+                            lastname = row[config['Mappings']['Last']]
+                            if new_birthMonth < 10:
+                                # adding 0 in front of one digit month or day
+                                month = f"0{str(new_birthMonth)}"
+                            else:
+                                month = str(new_birthMonth)
+                                
+                            year = str(new_birthYear)
+                            if new_birthDay < 10:
+                                day = f"0{str(new_birthDay)}"
+                            else:
+                                day = str(new_birthDay)
+
+                            state = row[config['Mappings']['State']]  # assign state for drivers license
+
+                            row[config['Mappings']['Drivers license']] = random.choice(license_rules[state])(month, firstname, lastname, year,day)  # apply function
+
+                    # LICENSE PLATE
+                    if config['Mappings'][
+                            'License Plate'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if not row[config['Mappings']['License Plate']] and config['General']['PreserveNulls'] == 'Yes':
+                            row[config['Mappings']['License Plate']] = None
+                        else:
+                            row[config['Mappings']['License Plate']] = fake.license_plate()
+
+                    # CLAIM NUMBER
+                    if config['Mappings']['Claim number'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if not row[config['Mappings']['Claim number']] and config['General']['PreserveNulls'] == 'Yes':
+                            row[config['Mappings']['Claim number']] = None
+                        else:
+                            row[config['Mappings']['Claim number']] = f"{random.randint(0,9)}{random.choice(string.ascii_uppercase)}{random.choice(string.ascii_uppercase)}{random.randint(10000000,99999999)}"
+
+                    # policy number
+                    if config['Mappings']['Policy Number'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if not row[config['Mappings']['Policy Number']] and config['General']['PreserveNulls'] == 'Yes':
+                            row[config['Mappings']['Policy Number']] = None
+                        else:
+                            row[config['Mappings']['Policy Number']] = policy_generator()
+
+                    # VIN
+                    vinMakeModel = row[config['Mappings']['VIN']][9]
+                    if config['Mappings']['VIN'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if not row[config['Mappings']['VIN']] and config['General']['PreserveNulls'] == 'Yes':
+                            row[config['Mappings']['VIN']] = None
+                        else:
+                            if config['General']['PreserveVINMakeModel'] == 'Yes':
+                                row[config['Mappings']['VIN']] = vinWithModel(vinMakeModel)
+                            else:
+                                row[config['Mappings']['VIN']] = vin_generator()
+
+                    # TIN
+                    if config['Mappings']['TIN'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if not row[config['Mappings']['TIN']] and config[
+                                'General']['PreserveNulls'] == 'Yes':
+                            row[config['Mappings']['TIN']] = None
+                        else:
+                            row[config['Mappings']['TIN']] = TIN()
+
+                    if config['Mappings']['User ID'] not in list_of_column_names[0]:
+                        pass
+                    else:
+                        if not row[config['Mappings']['User ID']] and config['General']['PreserveNulls'] == 'Yes':
+                            row[config['Mappings']['User ID']] = None
+                        else:
+                            if config['General']['PreserveIds'] == 'Yes':
+                                pass
+                            else:
+                                row[config['Mappings']
+                                    ['User ID']] = fake.user_name()
+
+                    postSSN.append(row[config['Mappings']['SSN']])
+                    postFName.append(row[config['Mappings']['First']])
+                    postLName.append(row[config['Mappings']['Last']])
+                    postDate.append(row[config['Mappings']['DOB']])
+                    postGender.append(row[config['Mappings']['Gender']])
+                    postDriversLicense.append(
+                        row[config['Mappings']['Drivers license']])
+
+                    for i in range(len(preSSN)):  # adding to dictionary
+                        ssnDict[preSSN[i]] = postSSN[i]
+                        fnameDict[postSSN[i]] = postFName[i]
+                        lnameDict[postSSN[i]] = postLName[i]
+                        dateDict[postSSN[i]] = postDate[i]
+                        genderDict[postSSN[i]] = postGender[i]
+                        driversLicenseDict[postSSN[i]] = postDriversLicense[i]
 
                 writer.writerow(row)
 
@@ -235,31 +301,49 @@ def isPhoneNumber(number):
     return is_match
 
 
-def vin_generator(n):
-    return f"{''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(n))}{random.randint(100000,999999)}"
+def vin_generator():
+    return f"{''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(17))}{random.randint(100000,999999)}"
+
+def policy_generator():
+    return f"{''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(random.randint(8,12)))}{random.randint(100000,999999)}"
 
 
+def vinWithModel(char):
+    return f"{''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(9))}{char}{''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(7))}"
+    
+    
 def TIN():  # like social security
     tin = f"9{str(random.randint(10,99))}-{str(random.randint(10,99))}-{str(random.randint(1000,9999))}"
     return tin
 
 
-def firstnameemail(
-        firstname,
-        lastname):  # generstes email with firstname in the beginning
+def firstnameemail(firstname,lastname):  # generstes email with firstname in the beginning
     email = f"{firstname}.{lastname}{random.randint(1,99)}@{faker.domain_name()}"
     return email
 
 
-def lastnameemail(firstname,
-                  lastname):  # generstes email with lastname in the beginning
+def lastnameemail(firstname,lastname):  # generstes email with lastname in the beginning
     email = f"{lastname}.{firstname}{random.randint(1,99)}@{faker.domain_name()}"
     return email
 
 
-def fLastNameemail(firstname,
-                   lastname):  # generstes email with lastname in the beginning
+def fLastNameemail(firstname,lastname):  # generstes email with lastname in the beginning
     email = f"{firstname[0]}.{lastname}{random.randint(1,99)}@{faker.domain_name()}"
+    return email
+
+
+def firstNameEmailDomain(firstname, lastname,domain):  # generstes email with firstname in the beginning
+    email = f"{firstname}.{lastname}{random.randint(1,99)}@{domain}"
+    return email
+
+
+def lastNameEmailDomain(firstname, lastname, domain):  # generstes email with lastname in the beginning
+    email = f"{lastname}.{firstname}{random.randint(1,99)}@{domain}"
+    return email
+
+
+def fLastNameEmailDomain(firstname, lastname, domain):  # generstes email with lastname in the beginning
+    email = f"{firstname[0]}.{lastname}{random.randint(1,99)}@{domain}"
     return email
 
 
@@ -525,7 +609,6 @@ license_rules = {
 
 sourcefile = input("Input filename: ")
 with open(sourcefile) as csv_file:
-
     # creating an object of csv reader
     # with the delimiter as ,
     csv_reader = csv.reader(csv_file, delimiter=',')
@@ -548,27 +631,28 @@ print("List of column names : ", list_of_column_names[0])
 list_of_possible_phone = [
     "Phone", "number", "contact", "phone", "Phone number"
 ]
+
+# for recording the new fake names that has the same ssn and mapping them.
+preSSN, postSSN, postFName, postLName, postDate, postGender, postDriversLicense= [], [], [], [], [], [], []
+ssnDict, fnameDict, lnameDict, dateDict, genderDict, driversLicenseDict = {}, {}, {}, {}, {}, {}
 anonymize(sourcefile)
+
+# function for finding the coplumn numbers for phone number etc
 with open(sourcefile, 'rb') as f:
     reader = cs.DictReader(f)
     flag = False
     for row in reader:  # loop through each rows
         if flag:
             break
-        for phoneIndex in range(len(list_of_column_names[0])
-                                ):  # loop through each items in the row
+        for phoneIndex in range(len(list_of_column_names[0])):  # loop through each items in the row
             if isPhoneNumber(
-                    str(row[list_of_column_names[0][phoneIndex]])
-            ) == True and list_of_column_names[0][
+                    str(row[list_of_column_names[0][phoneIndex]])) == True and list_of_column_names[0][
                     phoneIndex] in list_of_possible_phone:  # if the item matches phonenumber test and its column title is phone number or number or phone or etc
                 flag = True
                 # print(row[list_of_column_names[0][i]])  #print that item
                 break
-        for zipIndex in range(len(list_of_column_names[0])
-                              ):  # loop through each items in the row
-            if isZipCode(
-                    str(row[list_of_column_names[0][zipIndex]])
-            ) == True:  # if the item matches phonenumber test and its column title is phone number or number or phone or etc
+        for zipIndex in range(len(list_of_column_names[0])):  # loop through each items in the row
+            if isZipCode(str(row[list_of_column_names[0][zipIndex]])) == True:  # if the item matches phonenumber test and its column title is phone number or number or phone or etc
                 flag = True
                 # print(row[list_of_column_names[0][zipIndex]])  #print that item
                 break
@@ -580,5 +664,5 @@ print(f"Column {phoneIndex + 1} look like its for phone numbers")
 end = time.time()
 
 # print the difference between start
-# and end time in milli. secs
-print("Execution time :", (end - start), "s.")
+# and end time in secs
+print("Execution time :" + str(end - start) + "s.")
