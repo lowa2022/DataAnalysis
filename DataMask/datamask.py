@@ -1,4 +1,3 @@
-from django import conf
 import unicodecsv as cs
 from faker import Faker
 from datetime import date
