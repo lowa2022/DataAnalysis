@@ -10,6 +10,7 @@ import configparser
 import time
 import csv
 import re
+import pandas as pd
 
 # record start time
 start = time.time()  # start time
@@ -549,7 +550,9 @@ def rule35(*args):  # 10 digits #this format
     license_number = str(random.randint(1000000000, 9999999999))
     return license_number
 
-
+def xlsxtocsv(file):
+    read_file = pd.read_excel (file)
+    read_file.to_csv('sample.csv', index = None, header=True, date_format='%m/%d/%Y')
 # rule dictionary to be applied in the program
 
 license_rules = {
@@ -608,6 +611,13 @@ license_rules = {
 # choose the source file
 
 sourcefile = input("Input filename: ")
+
+if ".xlsx" in sourcefile:
+    xlsxtocsv(sourcefile)
+    sourcefile = 'sample.csv'
+else:
+    pass
+
 with open(sourcefile) as csv_file:
     # creating an object of csv reader
     # with the delimiter as ,
@@ -636,6 +646,8 @@ list_of_possible_phone = [
 preSSN, postSSN, postFName, postLName, postDate, postGender, postDriversLicense= [], [], [], [], [], [], []
 ssnDict, fnameDict, lnameDict, dateDict, genderDict, driversLicenseDict = {}, {}, {}, {}, {}, {}
 anonymize(sourcefile)
+
+
 
 # function for finding the coplumn numbers for phone number etc
 with open(sourcefile, 'rb') as f:
