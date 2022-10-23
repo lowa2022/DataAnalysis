@@ -198,8 +198,11 @@ def anonymize(sourcefile):
                                 day = f"0{str(new_birthDay)}"
                             else:
                                 day = str(new_birthDay)
-
-                            state = row[config['Mappings']['State']]  # assign state for drivers license
+                            
+                            if not row[config['Mappings']['State']]:
+                                state = random.choice(list(license_rules))
+                            else:
+                                state = row[config['Mappings']['State']]  # assign state for drivers license
 
                             row[config['Mappings']['Drivers license']] = random.choice(license_rules[state])(month, firstname, lastname, year,day)  # apply function
 
